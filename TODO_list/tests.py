@@ -48,10 +48,10 @@ class AccessTestCase(TestCase):
             user=User.objects.get(username="jacob"))
 
         try:
-            Access.objects.create(user="toto", group=Custom_Group.objects.get(name="Group1"),
+            Access.objects.create(user=User.objects.get(username="toto"), group=Custom_Group.objects.get(name="Group1"),
                                   is_staff=True, is_admin=True, is_developper=True)
-        except ValueError as error:
-            self.assertTrue('Cannot assign "\'toto\'"' in str(error))
+        except User.DoesNotExist as error:
+            self.assertTrue('User matching query does not exist.' in str(error))
 
     def test_Access_DoesNotExist(self):
         # Test If username are not link to the access
@@ -185,6 +185,60 @@ class ProjectTestCase(TestCase):
         Custom_Group.objects.create(
             name="Group1", description="Test for a group")
         Project.objects.create(name="Project1", description="It's a simple test",
-                               end_date="delta", percentage=0, group="Group1")
+                               end_date=delta, percentage=0, 
+                               group=Custom_Group.objects.get(name="Group1"))
         Project.objects.create(name="Project2", description="It's a second test",
-                               end_date="delta", percentage=2, group="Group1")
+                               end_date=delta, percentage=2,
+                               group=Custom_Group.objects.get(description="Test for a group"))
+
+
+    def test_Project_are_valid(self):
+        Project.objects.get(name="Project1")
+        Project.objects.get(percentage=2)
+        
+    def test_Project_name_DoesNotExist(self):
+        try:
+            delta = datetime(2022, 2, 22)
+            Project.objects.create(description="There is no name",
+                                end_date=delta, percentage=13,
+                                group=Custom_Group.objects.get(name="Group1"))
+        except ValueError as error:
+            print(error)
+            pass
+
+    def test_Project_description_DoesNotExist(self):
+        try:
+            delta = datetime(2022, 2, 22)
+            Project.objects.create(name="There is no description",
+                                end_date=delta, percentage=13,
+                                group=Custom_Group.objects.get(name="Group1"))
+        except ValueError as error:
+            print(error)
+            pass
+
+    def test_Project_percentage_NotPositiv(self):
+        delta = datetime(2022, 2, 22)
+        try:
+            Project.objects.create(name="Project_test", description="It's a simple test",
+                                end_date=delta, percentage=-16,
+                                group=Custom_Group.objects.get(name="Group1"))
+        except ValueError as error:
+            print(error)
+            pass
+        try:
+            Project.objects.create(name="Project_test", description="It's a simple test",
+                                end_date=delta, percentage=156,
+                                group=Custom_Group.objects.get(name="Group1"))
+        except ValueError as error:
+            print(error)
+            pass
+    
+    def test_Project_Group_DoesNotExist(self):
+        delta = datetime(2022, 2, 22)
+        try:
+            Project.objects.create(name="Project_test", description="It's a simple test",
+                                end_date=delta, percentage=42,
+                                group=Custom_Group.objects.get(name="Wrong_Group"))
+        except Custom_Group.DoesNotExist as error:
+            self.assertTrue(
+                'Custom_Group matching query does not exist.' in str(error))
